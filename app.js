@@ -1,7 +1,8 @@
 /* ================================
    Song Picker - app.js (Module)
-   Manual local import/export
-   Manual Firebase pull/push
+   Manual local import/export REMOVED
+   Manual Firebase pull (overwrite) ONLY
+   Added Pandora playback provider support
    ================================ */
 
 /* ---------- Constants ---------- */
@@ -27,13 +28,13 @@ const CSV_DELIM = "@";
 const RECENT_MAX = 4;
 
 /* ---------- Firebase (Manual) ----------
-   This uses Firestore as a "single master doc" store (manual pull/push).
+   This uses Firestore as a "single master doc" store (manual pull/overwrite).
    IMPORTANT: Firestore docs have a ~1 MiB limit. If you may exceed it, we should chunk.
 */
 const FIREBASE_ENABLED = true;
 
 const firebaseConfig = {
- apiKey: "AIzaSyBnIwX-F4YoxXW4gatIwvJD-NF23XcdwaI",
+  apiKey: "AIzaSyBnIwX-F4YoxXW4gatIwvJD-NF23XcdwaI",
   authDomain: "sturdy-device-485320-s2.firebaseapp.com",
   projectId: "sturdy-device-485320-s2",
   storageBucket: "sturdy-device-485320-s2.firebasestorage.app",
@@ -47,9 +48,7 @@ const FIREBASE_DOC_PATH = "songs/state";
 
 /* Firebase SDK imports (ESM) */
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js";
-import {
-  getFirestore, doc, getDoc
-} from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
+import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
 
 /* ---------- Firebase init ---------- */
 
@@ -82,11 +81,11 @@ let archive = loadArchive();
 let recent = loadRecent();
 
 let isBulkOperationInProgress = false;
-let provider = loadProvider(); // "apple" | "ytm"
+let provider = loadProvider(); // "apple" | "ytm" | "pandora"
 
 function loadProvider() {
   const v = localStorage.getItem(PROVIDER_KEY);
-  return (v === "ytm" || v === "apple") ? v : "apple";
+  return (v === "ytm" || v === "apple" || v === "pandora") ? v : "apple";
 }
 function saveProvider(v) {
   provider = v;
@@ -117,20 +116,13 @@ if (providerSelect) {
   providerSelect.value = provider;
   providerSelect.addEventListener("change", () => {
     saveProvider(providerSelect.value);
-    notify(`Playback: ${provider === "ytm" ? "YouTube Music" : "Apple Music"}`);
+    notify(`Playback: ${provider === "ytm" ? "YouTube Music" : (provider === "pandora" ? "Pandora" : "Apple Music")}`);
   });
 }
 const addSongNavBtn = document.getElementById("add-song-nav");
 
 // Removed local file import/export controls
-// const importCsvBtn = document.getElementById("import-csv-btn");
-// const importReplaceBtn = document.getElementById("import-replace-btn");
-// const exportCsvBtn = document.getElementById("export-csv-btn");
 const firebasePullBtn = document.getElementById("firebase-pull-btn");
-
-// Removed Firebase export control
-// const firebasePushBtn = document.getElementById("firebase-push-btn");
-// const importCsvFileInput = document.getElementById("import-csv-file");
 
 // Genre grid + copy
 const genreButtons = Array.from(document.querySelectorAll(".genre-btn"));
@@ -610,7 +602,7 @@ songForm?.addEventListener("submit", async (e) => {
   renderResult(null, `Added: ${titleInput} by ${artistInput}${yearText} in ${genre}`);
 });
 
-/* ---------- Playback Integration (Apple Music + YouTube Music) ---------- */
+/* ---------- Playback Integration (Apple Music + YouTube Music + Pandora) ---------- */
 
 const YT_API_KEY = "AIzaSyDTKFXhB4ddJJdafUjMqVrNqjTKBd2T_tU";
 
@@ -646,6 +638,11 @@ const PlaybackManager = (() => {
 
       // Desktop layout: use API to find best match, then open direct watch URL
       await playYouTubeMusicViaApi({ title, artist, genre });
+      return;
+    }
+
+    if (provider === "pandora") {
+      playPandoraSearch({ title, artist });
       return;
     }
 
@@ -696,8 +693,15 @@ const PlaybackManager = (() => {
     }
   }
 
+  function playPandoraSearch({ title, artist }) {
+    const q = encodeURIComponent(`${title} ${artist}`.trim());
+    // NOTE: Pandora URL patterns can change; validate this path in your browser.
+    const url = `https://www.pandora.com/search/${q}`;
+    openInTab(url);
+    notify(`Opening "${title}" in Pandora...`);
+  }
+
   function openInTab(url) {
-    // Use _blank on iPhone layout to behave more like Apple Music (new tab handoff feels more consistent)
     const target = isIphoneLayout() ? "_self" : TAB_TARGET;
 
     const win = window.open(url, target);
@@ -875,10 +879,6 @@ function renderResult(song, message) {
       '</div>';
     return;
   }
-  function openYouTubeMusicByVideoId(videoId) {
-    const url = `https://music.youtube.com/watch?v=${encodeURIComponent(videoId)}`;
-    window.open(url, "_blank");
-  }
 
   var yearText = (song.year != null) ? "(" + song.year + ")" : "";
   var text = escapeHtml(song.title) + " — " + escapeHtml(song.artist) + escapeHtml(yearText);
@@ -891,6 +891,8 @@ function renderResult(song, message) {
       '</div>' +
     '</div>';
 }
+
+/* ---------- Lists ---------- */
 
 function refreshSongList() {
   if (currentCountsEl) currentCountsEl.innerHTML = renderCounts(songs);
@@ -1017,7 +1019,7 @@ function renderRecent() {
     .join("");
 }
 
-/* ---------- HTML escape + notify + download ---------- */
+/* ---------- HTML escape + notify ---------- */
 
 function escapeHtml(str) {
   return String(str)
@@ -1054,18 +1056,6 @@ function notify(text) {
     clearTimeout(notify._t);
     notify._t = setTimeout(() => { toast.style.opacity = "0"; }, 2500);
   } catch (_) {}
-}
-
-// Kept (used elsewhere); local export UI removed but utility harmless
-function downloadBlob(blob, filename) {
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = filename;
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
-  URL.revokeObjectURL(url);
 }
 
 /* ---------- Normalizers + IDs ---------- */
@@ -1424,7 +1414,7 @@ function parseCsvWithStatus(text) {
 }
 
 /* -------- Merge with existing list -------- */
-
+/* (kept for compatibility; local file import UI removed) */
 function mergeImportedSongs(imported) {
   const keyOf = function(s) {
     return [
@@ -1543,5 +1533,4 @@ function renderLastImportMeta() {
 refreshSongList();
 refreshArchiveList();
 renderRecent();
-
 renderLastImportMeta();
