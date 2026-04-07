@@ -1,164 +1,209 @@
-/* iphone.css - Compressed layout for single-screen view */
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Song Picker</title>
 
-/* 1. Force the main screen to take exactly the phone screen height (no scrolling) */
-body, html {
-  height: 100%;
-  overflow: hidden; /* Prevent global scroll */
-}
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+  <meta name="color-scheme" content="dark light" />
 
-#app {
-  height: 100dvh; /* Dynamic Viewport Height handles Safari URL bar */
-  display: flex;
-  flex-direction: column;
-}
+  <link rel="stylesheet" href="styles.css" />
+  <link rel="stylesheet" href="iphone.css" media="(max-width: 768px)" />
+</head>
+<body>
+  <div id="app" class="app-root">
+    <!-- Main Screen -->
+    <section id="main-screen" class="screen active">
+      <header class="app-header">
+        <h1>Song Picker</h1>
+      </header>
 
-#main-screen.active {
-  display: flex;
-  flex-direction: column;
-  height: 100dvh;
-  padding: 0 16px; /* Remove bottom padding, handled by flex spacing */
-  overflow: hidden;
-}
+      <div class="provider-toggle">
+        <label class="toggle">
+          <span>Apple Music</span>
+          <select id="providerSelect">
+            <option value="apple" selected>Apple Music</option>
+            <option value="ytm">YouTube Music</option>
+            <option value="pandora">Pandora</option>
+          </select>
+        </label>
+      </div>
 
-/* 2. Header: Make it compact */
-.app-header {
-  flex: 0 0 auto; /* Don't grow or shrink */
-  padding: 12px 0 8px 0;
-  border-bottom: none; /* Cleaner look for mobile */
-}
-.app-header h1 {
-  font-size: 1.25rem;
-}
-.header-with-toggle{
-  position: relative;
-  justify-content: center; /* keep title centered */
-}
+      <!-- Genre Grid -->
+      <div class="buttons-grid two-cols-four-rows">
+        <button type="button" id="random-genre-btn" class="genre-btn random-btn tall" data-genre="Random">Random</button>
+        <button type="button" class="genre-btn tall genre-pop" data-genre="Pop">Pop</button>
+        <button type="button" class="genre-btn tall genre-country" data-genre="Country">Country</button>
+        <button type="button" class="genre-btn tall genre-rock" data-genre="Rock/Alt">Rock/Alt</button>
+        <button type="button" class="genre-btn tall genre-rnb" data-genre="R&B/HipHop">R&amp;B/HipHop</button>
+        <button type="button" class="genre-btn tall genre-other" data-genre="Other">Other</button>
+        <button type="button" class="genre-btn tall genre-tv" data-genre="Tv/Movie/Kids">Tv/Movie/Kids</button>
+        <button type="button" class="genre-btn tall genre-metal" data-genre="Metal/Hard Rock">Metal / Hard Rock</button>
+      </div>
 
-.header-with-toggle .provider-toggle{
-  position: absolute;
-  right: 0;
-  top: 50%;
-  transform: translateY(-50%);
-}
+      <!-- Selected Song Box -->
+      <div class="center-wrap">
+        <div id="result" class="result-card" aria-live="polite">
+          <div class="meta">
+            <div id="nowPlayingText" class="title">No song selected yet</div>
+            <div class="subtitle">
+              <span id="nowPlayingGenrePill" class="badge genre-pill" hidden>Genre</span>
+            </div>
+          </div>
+          <button type="button" id="copySongBtn" class="copy-btn" title="Copy" aria-label="Copy">Copy</button>
+        </div>
+      </div>
 
-.header-with-toggle #providerSelect{
-  height: 32px;
-  padding: 4px 8px;
-  border-radius: 10px;
-  border: 1px solid #334155;
-  background: rgba(11, 18, 33, 0.9);
-  color: var(--text);
-  font-size: 0.85rem;
-}
+      <!-- Recent Songs Bar -->
+      <div id="recentBar">
+        <h3>Last 4 Songs</h3>
+        <div id="recentList"></div>
+      </div>
 
-/* 3. Genre Grid: The key to fitting everything */
-/* This makes the grid take up all available empty space */
-.buttons-grid.two-cols-four-rows {
-  flex: 0 0 auto;              /* <-- was 1 1 auto */
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  grid-auto-rows: 52px;        /* fixed row height (tweak: 46–60) */
-  gap: 8px;
-  margin: 4px 0 12px 0;
-}
+      <!-- Bottom Actions -->
+      <div class="bottom-actions fixed-bottom" role="toolbar" aria-label="Main actions">
+        <div class="left-actions">
+          <button type="button" id="firebase-pull-btn" class="circle-icon circle-green" title="Firebase Pull" aria-label="Firebase Pull">
+            <span class="icon-label" aria-hidden="true">☁︎⇩</span>
+          </button>
+	<button type="button" id="decades-btn" class="circle-icon circle-green" title="Decades" aria-label="Decades">
+ 		 <span class="icon-label" aria-hidden="true">🗓</span>
+	</button>
+        </div>
 
-/* Remove fixed height so buttons squash to fit the screen */
-.genre-btn.tall {
-  height: 60px;                /* match grid-auto-rows */
-  min-height: 52px;
-  padding: 6px 8px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  text-align: center;
-  font-size: 0.9rem;
-  white-space: normal;
-}
+        <div class="right-actions">
+          <button type="button" id="add-song-nav" class="circle-icon circle-green" title="Add Song" aria-label="Add Song">
+            <span class="icon-label" aria-hidden="true">＋</span>
+          </button>
+        </div>
+      </div>
+    </section>
 
-/* 4. Result Card: Compact */
-.center-wrap {
-  flex: 0 0 auto;
-  margin: 0 0 12px 0;
-  width: 100%;
-}
-.result-card {
-  min-height: 74px;
-  padding: 10px 12px;
-  align-items: flex-start;
-}
-.result-card .title {
-  font-size: 1rem;
-}
-#nowPlayingText{
-  white-space: normal;        /* allow wrapping */
-  overflow: hidden;
-  text-overflow: clip;        /* don’t force ellipsis */
-  display: -webkit-box;
-  -webkit-line-clamp: 2;      /* show up to 2 lines */
-  -webkit-box-orient: vertical;
-}
-.copy-btn {
-  min-width: 60px;
-  min-height: 32px;
-  font-size: 0.85rem;
-}
+    <!-- Add Song / Current Songs Screen -->
+    <section id="add-screen" class="screen">
+      <header class="app-header header-with-toggle">
+        <h1>Song Picker</h1>
 
-/* 5. Recent Bar: Compact and tucked above bottom bar */
-#recentBar {
-  flex: 0 0 auto;
-  margin-bottom: 0px;
-  padding-bottom: 90px; /* Leave space for the floating bottom bar */
-  max-height: 22vh; /* Don't let recent history eat the whole screen */
-  overflow-y: auto;
-}
-#recentBar h3 {
-  font-size: 0.85rem;
-  margin: 0 0 4px 0;
-  text-transform: uppercase;
-  letter-spacing: 1px;
-  color: var(--muted);
-}
-#recentList .item-row {
-  padding: 4px 0;
-  font-size: 0.8rem;
-  border-bottom: 1px solid rgba(255,255,255,0.1);
-}
+        <div class="provider-toggle" aria-label="Playback provider">
+          <select id="providerSelect" title="Playback Provider" aria-label="Playback Provider">
+            <option value="apple" selected>Apple</option>
+            <option value="ytm">YouTube</option>
+            <option value="pandora">Pandora</option>
+          </select>
+        </div>
+      </header>
 
-/* 6. Bottom Actions: Floating Overlay */
-.bottom-actions.fixed-bottom {
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  padding: 10px 18px calc(env(safe-area-inset-bottom) + 12px);
-  background: rgba(11, 18, 33, 0.95); /* High opacity background */
-  backdrop-filter: blur(10px);
-  border-top: 1px solid #334155;
-  z-index: 50;
-  display: flex;
-  justify-content: space-between;
-}
+      <div class="form-card">
+        <form id="song-form" novalidate>
+          <div class="form-row">
+            <label for="artist">Artist</label>
+            <input type="text" id="artist" name="artist" required />
+          </div>
 
-/* Removed debug outline */
-/* .bottom-actions.fixed-bottom { outline: 2px solid red; } */
+          <div class="form-row">
+            <label for="title">Song Title</label>
+            <input type="text" id="title" name="title" required />
+          </div>
 
-/* Adjust circle size slightly for mobile proportions */
-.circle-icon {
-  width: 40px;
-  height: 40px;
-}
-.icon-label {
-  font-size: 22px;
-}
+          <div class="form-row">
+            <label for="year">Year</label>
+            <input type="number" id="year" name="year" min="1900" max="2100" />
+          </div>
 
-/* 7. Hide "Import Report" on main screen mobile to save space */
-#mainImportReport {
-  display: none;
-}
+          <div class="form-row">
+            <label for="genre">Genre</label>
+            <select id="genre" name="genre" required>
+              <option value="">Select a genre</option>
+              <option>Pop</option>
+              <option>Country</option>
+              <option>Rock/Alt</option>
+              <option>R&B/HipHop</option>
+              <option>Other</option>
+              <option>Tv/Movie/Kids</option>
+              <option>Metal/Hard Rock</option>
+            </select>
+          </div>
 
-/* 8. Tweaks for the Add/Archive screens (which scroll normally) */
-#add-screen, #archive-screen {
-  height: 100dvh;
-  overflow-y: auto;
-  padding-bottom: 40px;
-}
+          <div class="form-actions">
+            <button type="submit" class="primary">Save</button>
+            <button type="button" id="cancel-add" class="secondary">Back</button>
+            <button type="button" id="go-archive" class="secondary">Archive</button>
+          </div>
+        </form>
+      </div>
+
+      <div class="list-toolbar">
+        <div class="toolbar-left">
+          <button type="button" id="back-current" class="icon-btn">Back</button>
+          <button type="button" id="nav-archive" class="icon-btn">Archive</button>
+        </div>
+      </div>
+
+      <div class="list-preview">
+        <div class="list-header">
+          <h3>Current Songs</h3>
+          <div id="current-counts" class="counts"></div>
+        </div>
+        <ul id="song-list"></ul>
+
+        <div class="list-bottom-actions">
+          <button type="button" id="archive-all-current" class="icon-btn">Archive All Current Songs</button>
+        </div>
+
+        <div id="importReport"></div>
+      </div>
+    </section>
+
+    <!-- Archive Screen -->
+    <section id="archive-screen" class="screen">
+      <header class="app-header">
+        <h2>Archived Songs</h2>
+      </header>
+
+      <div class="list-toolbar">
+        <div class="toolbar-left">
+          <button type="button" id="back-archive" class="icon-btn">Back</button>
+          <button type="button" id="nav-current" class="icon-btn">Current</button>
+        </div>
+        <div class="toolbar-right">
+          <button type="button" id="delete-all-archive" class="icon-btn danger">Delete All</button>
+          <button type="button" id="unarchive-all" class="icon-btn">Unarchive All</button>
+        </div>
+      </div>
+
+      <div class="list-preview">
+        <div class="list-header">
+          <h3>Archive</h3>
+          <div id="archive-counts" class="counts"></div>
+        </div>
+        <ul id="archive-list"></ul>
+
+        <div class="list-bottom-actions">
+          <button type="button" id="delete-all-archive-view" class="icon-btn danger">Delete All</button>
+          <button type="button" id="unarchive-all-bottom" class="icon-btn">Unarchive All</button>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <!-- app.js is now a module because it includes Firebase ESM imports -->
+  <script type="module" src="app.js"></script>
+<div id="decadesModal" class="modal" hidden>
+  <div class="modal-backdrop" data-action="close-decade-modal"></div>
+
+  <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="decadesTitle">
+    <div class="modal-header">
+      <h3 id="decadesTitle">Decades</h3>
+      <button type="button" class="icon-btn" data-action="close-decade-modal">Close</button>
+    </div>
+
+    <div class="modal-body" id="decadesOptions"></div>
+
+    <div class="modal-footer">
+      <button type="button" class="icon-btn" id="decadesAllBtn">All</button>
+      <button type="button" class="primary" id="decadesSaveBtn">Save</button>
+    </div>
+  </div>
+</div>
+</body>
+</html>
