@@ -343,6 +343,70 @@ input:focus, select:focus { outline: 2px solid var(--accent2); }
   border-radius: 8px;
   cursor: pointer;
 }
+.modal[hidden] { display: none; }
+
+.modal {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+}
+
+.modal-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(0,0,0,0.55);
+}
+
+.modal-card {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: min(520px, calc(100vw - 24px));
+  max-height: min(80vh, 680px);
+  overflow: auto;
+  background: var(--card);
+  border: 1px solid #1f2937;
+  border-radius: 16px;
+  box-shadow: var(--shadow);
+  padding: 14px;
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.modal-body {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px 12px;
+  margin-bottom: 12px;
+}
+
+@media (max-width: 420px) {
+  .modal-body { grid-template-columns: 1fr; }
+}
+
+.decade-opt {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border: 1px solid #334155;
+  border-radius: 12px;
+  background: #0b1221;
+}
+
+.modal-footer {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  align-items: center;
+}
 .bind-btn:hover { filter: brightness(1.05); }
 .bind-btn.bind-bound { border-color: var(--bind-green-border); background: var(--bind-green-bg); color: var(--bind-green-text); }
 .bind-btn.bind-not-bound { border-color: var(--bind-orange-border); background: var(--bind-orange-bg); color: var(--bind-orange-text); }
