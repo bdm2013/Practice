@@ -27,6 +27,42 @@ const PROVIDER_KEY = "songPicker.provider";
 const CSV_DELIM = "@";
 const RECENT_MAX = 4;
 
+const DECADES_KEY = "songPicker.decades";
+const DECADES = [1950, 1960, 1970, 1980, 1990, 2000, 2010, 2020];
+
+let selectedDecades = loadDecades(); // array of decade start years; empty means "All"
+
+function loadDecades() {
+  try {
+    const raw = localStorage.getItem(DECADES_KEY);
+    const arr = raw ? JSON.parse(raw) : [];
+    return Array.isArray(arr) ? arr.filter(n => Number.isFinite(n)) : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveDecades(arr) {
+  selectedDecades = Array.isArray(arr) ? arr : [];
+  localStorage.setItem(DECADES_KEY, JSON.stringify(selectedDecades));
+}
+
+function yearToDecadeStart(year) {
+  if (!Number.isFinite(year)) return null;
+  return Math.floor(year / 10) * 10;
+}
+
+function passesDecadeFilter(song) {
+  // Empty selection means "All decades"
+  if (!selectedDecades || selectedDecades.length === 0) return true;
+
+  // EXCLUDED per your choice
+  if (song.year == null) return false;
+
+  const d = yearToDecadeStart(Number(song.year));
+  return d != null && selectedDecades.includes(d);
+}
+
 /* ---------- Firebase (Manual) ----------
    This uses Firestore as a "single master doc" store (manual pull/overwrite).
    IMPORTANT: Firestore docs have a ~1 MiB limit. If you may exceed it, we should chunk.
@@ -169,6 +205,12 @@ if (providerSelect) {
     notify(`Playback: ${provider === "ytm" ? "YouTube Music" : (provider === "pandora" ? "Pandora" : "Apple Music")}`);
   });
 }
+const decadesBtn = document.getElementById("decades-btn");
+const decadesModal = document.getElementById("decadesModal");
+const decadesOptions = document.getElementById("decadesOptions");
+const decadesAllBtn = document.getElementById("decadesAllBtn");
+const decadesSaveBtn = document.getElementById("decadesSaveBtn");
+
 const addSongNavBtn = document.getElementById("add-song-nav");
 
 // Removed local file import/export controls
@@ -321,7 +363,7 @@ genreButtons.forEach(btn => {
   btn.addEventListener("click", () => {
     const genre = btn.dataset.genre;
     if (genre === "Random") {
-      const genresWithSongs = DISPLAY_GENRES.filter(g => songs.some(s => s.genre === g));
+      const genresWithSongs = DISPLAY_GENRES.filter(g => songs.some(s => s.genre === g && passesDecadeFilter(s)));
       if (genresWithSongs.length === 0) {
         renderResult(null, "No songs yet. Add or import some!");
         return;
@@ -336,7 +378,7 @@ genreButtons.forEach(btn => {
 /* ---------- Pick and archive ---------- */
 
 async function pickAndArchiveForGenre(genre) {
-  const pool = songs.filter(s => s.genre === genre);
+  const pool = songs.filter(s => s.genre === genre).filter(passesDecadeFilter);
   if (pool.length === 0) {
     renderResult(null, `No songs in ${genre} yet. Add or import some!`);
     return;
@@ -762,6 +804,57 @@ const PlaybackManager = (() => {
     try { win.focus(); } catch (_) {}
     return win;
   }
+function openDecadesModal() {
+  if (!decadesModal || !decadesOptions) return;
+
+  decadesOptions.innerHTML = DECADES.map(d => {
+    const checked = selectedDecades.includes(d) ? "checked" : "";
+    return `
+      <label class="decade-opt">
+        <input type="checkbox" data-decade="${d}" ${checked} />
+        <span>${d}s</span>
+      </label>
+    `;
+  }).join("");
+
+  decadesModal.hidden = false;
+}
+
+function closeDecadesModal() {
+  if (!decadesModal) return;
+  decadesModal.hidden = true;
+}
+
+decadesBtn?.addEventListener("click", () => openDecadesModal());
+
+decadesModal?.addEventListener("click", (e) => {
+  const el = e.target.closest("[data-action='close-decade-modal']");
+  if (el) closeDecadesModal();
+});
+
+decadesAllBtn?.addEventListener("click", () => {
+  // All = empty selection
+  saveDecades([]);
+  // re-render checks
+  openDecadesModal();
+  notify("Decades: All");
+});
+
+decadesSaveBtn?.addEventListener("click", () => {
+  if (!decadesOptions) return;
+
+  const checks = Array.from(decadesOptions.querySelectorAll("input[type='checkbox'][data-decade]"));
+  const chosen = checks
+    .filter(x => x.checked)
+    .map(x => Number(x.dataset.decade))
+    .filter(n => Number.isFinite(n));
+
+  saveDecades(chosen);
+  closeDecadesModal();
+
+  if (chosen.length === 0) notify("Decades: All");
+  else notify("Decades: " + chosen.map(d => `${d}s`).join(", "));
+});
 
   function navigateTab(win, url) {
     try {
