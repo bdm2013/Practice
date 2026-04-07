@@ -63,10 +63,12 @@
       <!-- Bottom Actions -->
       <div class="bottom-actions fixed-bottom" role="toolbar" aria-label="Main actions">
         <div class="left-actions">
-          <!-- Keep Firebase Pull only -->
           <button type="button" id="firebase-pull-btn" class="circle-icon circle-green" title="Firebase Pull" aria-label="Firebase Pull">
             <span class="icon-label" aria-hidden="true">☁︎⇩</span>
           </button>
+	<button type="button" id="decades-btn" class="circle-icon circle-green" title="Decades" aria-label="Decades">
+ 		 <span class="icon-label" aria-hidden="true">🗓</span>
+	</button>
         </div>
 
         <div class="right-actions">
@@ -186,5 +188,22 @@
 
   <!-- app.js is now a module because it includes Firebase ESM imports -->
   <script type="module" src="app.js"></script>
+<div id="decadesModal" class="modal" hidden>
+  <div class="modal-backdrop" data-action="close-decade-modal"></div>
+
+  <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="decadesTitle">
+    <div class="modal-header">
+      <h3 id="decadesTitle">Decades</h3>
+      <button type="button" class="icon-btn" data-action="close-decade-modal">Close</button>
+    </div>
+
+    <div class="modal-body" id="decadesOptions"></div>
+
+    <div class="modal-footer">
+      <button type="button" class="icon-btn" id="decadesAllBtn">All</button>
+      <button type="button" class="primary" id="decadesSaveBtn">Save</button>
+    </div>
+  </div>
+</div>
 </body>
 </html>
